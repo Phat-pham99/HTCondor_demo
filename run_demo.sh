@@ -27,8 +27,9 @@ export DOCKER_GID
 DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
 
 cleanup() {
-  remove_workers
-  docker compose down --volumes --remove-orphans
+  docker compose stop condor-autoscaler condor-manager >/dev/null 2>&1 || true
+  remove_workers || true
+  docker compose down --volumes --remove-orphans || true
   rm -rf .demo
 }
 remove_workers
@@ -52,8 +53,8 @@ docker compose exec -T -u demo condor-manager sh -c 'cd /workload_demo && condor
 completed=0
 for _ in $(seq 1 60); do
   completed=1
-  for job_id in 1 2 3 4; do
-    if ! docker compose exec -T condor-manager test -s "/out/pi-${job_id}.json"; then
+  for proc_id in 0 1 2 3; do
+    if ! docker compose exec -T condor-manager test -s "/out/pi-1-${proc_id}.json"; then
       completed=0
     fi
   done
