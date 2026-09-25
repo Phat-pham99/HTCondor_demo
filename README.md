@@ -2,6 +2,22 @@
 
 This repository provides a local Docker Compose demonstration of an HTCondor pool. A manager container runs the collector, negotiator, schedd, and startd. A Python autoscaler observes the schedd over SSH, creates labeled worker containers through the Docker API, and removes idle workers.
 
+## Why use HTCondor
+
+HTCondor is a high-throughput computing (HTC) workload manager. Where an HPC scheduler optimizes a single tightly coupled job to finish as fast as possible, HTCondor targets many loosely coupled jobs that run over hours, days, or months and tries to keep every available machine busy. Progress is measured in jobs completed per month rather than floating-point operations per second. That model suits embarrassingly parallel work such as the Monte Carlo runs in this demo.
+
+This pool relies on HTCondor for several reasons:
+
+- **Matchmaking and scheduling.** The collector aggregates machine and job ClassAds and the negotiator pairs queued jobs with available slots, so the pool self-organizes as workers come and go.
+- **Elastic, heterogeneous pools.** Execute nodes advertise their slots to the central manager. The autoscaler in this repository adds and removes Docker workers at runtime, and HTCondor absorbs the churn without reconfiguration.
+- **Built-in file transfer.** `transfer_input_files` and `transfer_output_files` move the executable, inputs, and results between the submit host and the workers, so jobs need no shared filesystem.
+- **Fault tolerance.** A job that loses its slot is held or requeued rather than lost, which matters when workers are created and destroyed on demand.
+- **No application changes.** Ordinary serial programs run unchanged under the vanilla universe, with no special library to link against and no rewrite for the cluster.
+- **Mature ecosystem.** DAGMan expresses job dependencies, and HTCondor spans local clusters, campus machines, cloud, and grid resources from the same submit interface.
+
+The result is that compute becomes a fungible pool: queue demand drives container creation, HTCondor routes work to whatever slots appear, and idle capacity is reclaimed automatically.
+
+
 ## Prerequisites
 
 - Linux Docker Engine with Docker Compose v2
@@ -13,10 +29,10 @@ The demo uses the official `htcondor/mini:lts` and `htcondor/execute:lts` images
 
 ## Workflow
 
-## Animated GIF workflow
+### Animated GIF workflow
 ![Animated HTCondor workflow](assets/htcondor-workflow.gif)
 
-## Standard Mermaid chart workflow
+### Standard Mermaid chart workflow
 ```mermaid
 sequenceDiagram
     autonumber
