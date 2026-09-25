@@ -1,0 +1,11 @@
+FROM htcondor/mini:lts
+
+RUN dnf install -y openssh-clients openssh-server && dnf clean all && rm -rf /var/cache/dnf
+RUN usermod -s /bin/bash condor
+RUN useradd --uid 2000 --create-home --shell /bin/bash demo
+RUN mkdir -p /var/log/condor /var/lib/condor/spool /var/lib/condor/execute /var/lib/condor/lock
+RUN printf '#!/bin/sh\nexit 0\n' > /usr/libexec/condor_gpu_discovery && chmod 0755 /usr/libexec/condor_gpu_discovery
+COPY config/condor_config.manager /etc/condor/condor_config
+COPY images/manager-entrypoint.sh /usr/local/bin/manager-entrypoint
+RUN chmod 0755 /usr/local/bin/manager-entrypoint
+ENTRYPOINT ["/usr/local/bin/manager-entrypoint"]

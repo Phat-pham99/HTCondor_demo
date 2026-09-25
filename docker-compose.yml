@@ -1,0 +1,77 @@
+name: htcondor-demo
+
+services:
+  condor-manager:
+    build:
+      context: .
+      dockerfile: images/Dockerfile.manager
+    image: htcondor-demo-manager
+    hostname: condor-manager
+    environment:
+      CONDOR_HOST: condor-manager
+      CONDOR_SSH_PUBLIC_KEY: ${CONDOR_SSH_PUBLIC_KEY:-}
+    volumes:
+      - ./config/condor_config.manager:/etc/condor/condor_config:ro
+      - ./workload_demo:/workload_demo:ro
+      - condor_out:/out
+    networks:
+      condor-net:
+        aliases:
+          - manager
+    healthcheck:
+      test: ["CMD-SHELL", "condor_q -name condor-manager@condor-manager -total >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  condor-autoscaler:
+    build:
+      context: .
+      dockerfile: autoscaler/Dockerfile
+    image: htcondor-demo-autoscaler
+    environment:
+      AUTOSCALER_MANAGER_HOST: condor-manager
+      AUTOSCALER_SSH_USER: condor
+      AUTOSCALER_SSH_KEY_PATH: /run/ssh/id_ed25519
+      AUTOSCALER_KNOWN_HOSTS_PATH: /run/ssh/known_hosts
+      AUTOSCALER_DOCKER_NETWORK: condor-net
+      AUTOSCALER_WORKER_IMAGE: htcondor-demo-worker
+      AUTOSCALER_OUTPUT_VOLUME: htcondor-demo-output
+      AUTOSCALER_MAX_WORKERS: ${AUTOSCALER_MAX_WORKERS:-4}
+      AUTOSCALER_MIN_WORKERS: ${AUTOSCALER_MIN_WORKERS:-1}
+      AUTOSCALER_JOBS_PER_WORKER: ${AUTOSCALER_JOBS_PER_WORKER:-1}
+      AUTOSCALER_POLL_SECONDS: ${AUTOSCALER_POLL_SECONDS:-5}
+      AUTOSCALER_IDLE_SECONDS: ${AUTOSCALER_IDLE_SECONDS:-60}
+      AUTOSCALER_WORKER_CPUS: ${AUTOSCALER_WORKER_CPUS:-1}
+      AUTOSCALER_WORKER_MEMORY_MB: ${AUTOSCALER_WORKER_MEMORY_MB:-512}
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./.demo/ssh:/run/ssh:ro
+    networks:
+      condor-net:
+    depends_on:
+      condor-manager:
+        condition: service_healthy
+    restart: unless-stopped
+
+  condor-worker:
+    build:
+      context: .
+      dockerfile: images/Dockerfile.worker
+    image: htcondor-demo-worker
+    profiles:
+      - worker-image
+    volumes:
+      - ./config/condor_config.worker:/etc/condor/condor_config:ro
+    networks:
+      condor-net:
+    command: ["true"]
+
+networks:
+  condor-net:
+    name: condor-net
+
+volumes:
+  condor_out:
+    name: htcondor-demo-output

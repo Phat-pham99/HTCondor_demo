@@ -1,0 +1,10 @@
+executable = monte_carlo_pi.py
+arguments = --samples 250000 --seed $(ProcId) --output pi-$(ClusterId)-$(ProcId).json
+transfer_input_files = monte_carlo_pi.py
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files = pi-$(ClusterId)-$(ProcId).json
+output_directory = /out
+output = /out/pi-$(ClusterId)-$(ProcId).log
+error = /out/pi-$(ClusterId)-$(ProcId).err
+queue 4
