@@ -11,6 +11,42 @@ This repository provides a local Docker Compose demonstration of an HTCondor poo
 
 The demo uses the official `htcondor/mini:lts` and `htcondor/execute:lts` images. The manager and worker images add only the repository configuration and local entrypoints.
 
+## Workflow
+
+## Animated GIF workflow
+![Animated HTCondor workflow](assets/htcondor-workflow.gif)
+
+## Standard Mermaid chart workflow
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Submit as Submit Host (schedd)
+    participant Collector as Central Manager (collector)
+    participant Negotiator as Central Manager (negotiator)
+    participant Worker as Execute Node (startd)
+
+    User->>Submit: 1. condor_submit job.sub
+    Worker-->>Collector: 2. Advertise Machine ClassAd
+    Submit-->>Collector: 3. Advertise Job ClassAd
+    
+    loop Matchmaking Cycle
+        Negotiator->>Collector: 4. Query available jobs & worker slots
+        Collector-->>Negotiator: 5. Return matched pairs
+    end
+
+    Negotiator->>Submit: 6. Notify job match & allocated slot
+    Submit->>Worker: 7. Claim slot & Transfer Input Files
+    
+    activate Worker
+    Worker->>Worker: 8. Execute Task (condor_starter)
+    Worker-->>Submit: 9. Stream stdout / stderr & update job log
+    Worker->>Submit: 10. Return Output Files & Exit Code
+    deactivate Worker
+    
+    Submit-->>User: 11. Job Complete (Output & Log ready)
+```
+
 ## Quick start
 
 ```sh
