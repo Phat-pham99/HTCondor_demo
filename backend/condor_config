@@ -1,0 +1,6 @@
+# Client-only configuration for the dashboard's read-only queries.
+COLLECTOR_HOST = condor-manager:9618
+SEC_CLIENT_AUTHENTICATION = OPTIONAL
+SEC_CLIENT_ENCRYPTION = OPTIONAL
+SEC_CLIENT_INTEGRITY = OPTIONAL
+USE_SHARED_PORT = FALSE
