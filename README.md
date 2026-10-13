@@ -71,6 +71,24 @@ sequenceDiagram
 
 The script builds the images, starts the manager and autoscaler, submits four Monte Carlo pi jobs through HTCondor file transfer, verifies all four JSON results, and removes the containers, network, and output volume. The output is verified before cleanup and is not retained after a successful run.
 
+### Dashboard demo
+
+```sh
+./run_demo.sh --dashboard
+```
+
+This also starts the monitoring dashboard at http://127.0.0.1:8080 and submits the demo scenarios: successful, long-running, failing, unmatchable (stays queued) and three CPU-bound heat-diffusion jobs that each run for about 5 minutes. Press Ctrl+C to stop and clean up.
+
+![Dashboard overview: summary cards, job table and recent activity](assets/dashboard-overview.png)
+
+![Compute-node grid: claimed, available and offline workers](assets/dashboard-nodes.png)
+
+### Heavy workload
+
+`workload_demo/heavy.sub` submits three CPU-bound 2D heat-diffusion simulations (`heat_diffusion.py`), each running for about 5 minutes. While they run, each job keeps a host CPU core near 100%:
+
+![Three heat-diffusion jobs running on separate cores at ~100% CPU](assets/heavy-jobs-cpu.png)
+
 ## Manual inspection
 
 Run the automated checks without Docker:
