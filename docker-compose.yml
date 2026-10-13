@@ -14,6 +14,7 @@ services:
       - ./config/condor_config.manager:/etc/condor/condor_config:ro
       - ./workload_demo:/workload_demo:ro
       - condor_out:/out
+      - condor_events:/var/lib/condor/events
     networks:
       condor-net:
         aliases:
@@ -68,6 +69,43 @@ services:
       condor-net:
     command: ["true"]
 
+  dashboard-backend:
+    build:
+      context: backend
+    image: htcondor-demo-dashboard-backend
+    environment:
+      DASHBOARD_COLLECTOR_HOST: condor-manager:9618
+      DASHBOARD_SCHEDD_NAME: condor-manager@condor-manager
+      DASHBOARD_EVENT_LOG: /var/lib/condor/events/EventLog
+      DASHBOARD_OUTPUT_ROOT: /out
+      DASHBOARD_HISTORY_LIMIT: ${DASHBOARD_HISTORY_LIMIT:-200}
+    volumes:
+      - condor_out:/out:ro
+      - condor_events:/var/lib/condor/events:ro
+    networks:
+      condor-net:
+    ports:
+      - "127.0.0.1:${DASHBOARD_API_PORT:-7000}:7000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      condor-manager:
+        condition: service_healthy
+
+  dashboard-frontend:
+    build:
+      context: frontend
+    image: htcondor-demo-dashboard-frontend
+    networks:
+      condor-net:
+    ports:
+      - "0.0.0.0:${DASHBOARD_PORT:-8080}:80"
+    depends_on:
+      - dashboard-backend
+
 networks:
   condor-net:
     name: condor-net
@@ -75,3 +113,5 @@ networks:
 volumes:
   condor_out:
     name: htcondor-demo-output
+  condor_events:
+    name: htcondor-demo-events

@@ -1,0 +1,11 @@
+# Long-running scenario: the same workload, delayed so the job stays in the RUNNING state.
+executable = monte_carlo_pi.py
+arguments = --samples 250000 --seed 7 --delay 120 --output long-$(ClusterId)-$(ProcId).json
+transfer_input_files = monte_carlo_pi.py
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files = long-$(ClusterId)-$(ProcId).json
+output_directory = /out
+output = /out/long-$(ClusterId)-$(ProcId).log
+error = /out/long-$(ClusterId)-$(ProcId).err
+queue 1

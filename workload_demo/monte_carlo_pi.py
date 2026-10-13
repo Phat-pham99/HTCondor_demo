@@ -2,6 +2,7 @@
 import argparse
 import json
 import random
+import time
 from pathlib import Path
 
 
@@ -29,7 +30,10 @@ def main() -> None:
     parser.add_argument("--samples", type=int, default=250_000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--delay", type=float, default=0.0, help="seconds to wait before computing")
     args = parser.parse_args()
+    if args.delay > 0:
+        time.sleep(args.delay)
     write_result(args.output, args.samples, args.seed)
 
 

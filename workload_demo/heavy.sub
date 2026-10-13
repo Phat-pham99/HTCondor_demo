@@ -1,0 +1,12 @@
+# Heavy scenario: CPU-bound heat-diffusion simulation, ~5 minutes per job.
+executable = heat_diffusion.py
+arguments = --duration 300 --size 150 --seed $(ProcId) --output heat-$(ClusterId)-$(ProcId).json
+transfer_input_files = heat_diffusion.py
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files = heat-$(ClusterId)-$(ProcId).json
+output_directory = /out
+output = /out/heat-$(ClusterId)-$(ProcId).log
+error = /out/heat-$(ClusterId)-$(ProcId).err
+request_cpus = 1
+queue 3

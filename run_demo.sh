@@ -4,6 +4,16 @@ set -Eeuo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$ROOT"
 
+DASHBOARD=0
+case "${1:-}" in
+  "") ;;
+  --dashboard) DASHBOARD=1 ;;
+  *)
+    printf 'usage: %s [--dashboard]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+
 command -v docker >/dev/null
 command -v ssh-keygen >/dev/null
 [[ -S /var/run/docker.sock ]]
@@ -36,7 +46,11 @@ remove_workers
 docker compose down --volumes --remove-orphans
 trap cleanup EXIT
 
-docker compose build condor-manager condor-autoscaler condor-worker
+services=(condor-manager condor-autoscaler condor-worker)
+if [[ "$DASHBOARD" == 1 ]]; then
+  services+=(dashboard-backend dashboard-frontend)
+fi
+docker compose build "${services[@]}"
 docker compose up -d condor-manager
 for _ in $(seq 1 30); do
   if docker compose exec -T condor-manager test -s /etc/ssh/ssh_host_ed25519_key.pub; then
@@ -47,8 +61,21 @@ done
 docker compose exec -T condor-manager ssh-keyscan condor-manager > .demo/ssh/known_hosts
 chmod 0644 .demo/ssh/known_hosts
 docker compose up -d condor-autoscaler
+if [[ "$DASHBOARD" == 1 ]]; then
+  docker compose up -d dashboard-backend dashboard-frontend
+fi
 
-docker compose exec -T -u demo condor-manager sh -c 'cd /workload_demo && condor_submit -name condor-manager@condor-manager job.sub'
+submit() {
+  docker compose exec -T -u demo condor-manager sh -c "cd /workload_demo && condor_submit -name condor-manager@condor-manager $1"
+}
+
+submit job.sub
+if [[ "$DASHBOARD" == 1 ]]; then
+  submit long_running.sub
+  submit failing.sub
+  submit unmatchable.sub
+  submit heavy.sub
+fi
 
 completed=0
 for _ in $(seq 1 60); do
@@ -72,3 +99,10 @@ fi
 
 docker compose exec -T condor-manager ls -l /out
 printf '%s\n' 'HTCondor demo completed successfully.'
+
+if [[ "$DASHBOARD" == 1 ]]; then
+  printf 'Dashboard: http://127.0.0.1:%s (press Ctrl+C to stop and clean up)\n' "${DASHBOARD_PORT:-8080}"
+  while true; do
+    sleep 3600
+  done
+fi
